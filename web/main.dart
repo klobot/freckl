@@ -6,6 +6,7 @@ import 'dart:convert' show JSON;
 import 'package:svg_pan_zoom/svg_pan_zoom.dart' as panzoom;
 
 void main() {
+  querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
   querySelector('#path-button').onMouseUp.listen(buttonPressHandler);
 
   var panZoom = new panzoom.SvgPanZoom.selector('.inner');
@@ -15,7 +16,15 @@ void main() {
     ..zoomSensitivity = 0.02;
 }
 
+void pathToJsonHander(KeyboardEvent event) {
+  if (event.keyCode == 13) _loadData();
+}
+
 void buttonPressHandler(MouseEvent event) {
+  _loadData();
+}
+
+void _loadData() {
   InputElement input = querySelector('#path-to-json');
   String pathToJson = input.value;
   HttpRequest.getString(pathToJson).then((String response) {
