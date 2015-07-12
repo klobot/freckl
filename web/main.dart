@@ -86,7 +86,6 @@ void displayData(List data) {
       'cy': '${dataPoint['point'][1] - minY.toInt()}',
       'r': '2',
       'fill': color,
-      'opacity' : "0.5"
     };
 
     point.onMouseOver.listen((MouseEvent event) {
