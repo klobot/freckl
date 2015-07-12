@@ -31,7 +31,8 @@ void displayData(List data) {
 
   // Record maximum values of x and y which represent the width and height for
   // background necessary for zooming and panning.
-  num maxX, maxY;
+  num minX, maxX, minY, maxY;
+  minX = minY = double.INFINITY;
   maxX = maxY = double.NEGATIVE_INFINITY;
 
   for (Map dataPoint in data) {
@@ -39,6 +40,7 @@ void displayData(List data) {
     // {'point': [x, y],
     //  'value': v,
     //  'color': c,
+    //  'uri': path,
     //  ...
     // }
     assert(dataPoint.containsKey('point'));
@@ -46,6 +48,14 @@ void displayData(List data) {
     assert(dataPoint['point'].length == 2);
     assert(dataPoint.containsKey('value'));
     assert(dataPoint.containsKey('color'));
+
+    minX = dataPoint['point'][0] < minX ? dataPoint['point'][0] : minX;
+    minY = dataPoint['point'][1] < minY ? dataPoint['point'][1] : minY;
+    maxX = dataPoint['point'][0] > maxX ? dataPoint['point'][0] : maxX;
+    maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
+  }
+
+  for (Map dataPoint in data) {
     // Color can be an int (the format of the image package for Dart)
     // or a (hex) string.
     String color;
@@ -59,15 +69,12 @@ void displayData(List data) {
     } else {
       color = dataPoint['color'];
     }
-    // Update maximum values.
-    maxX = dataPoint['point'][0] > maxX ? dataPoint['point'][0] : maxX;
-    maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
 
     // Create the circle element
     svg.CircleElement point = new svg.CircleElement();
     point.attributes = {
-      'cx': '${dataPoint['point'][0]}',
-      'cy': '${dataPoint['point'][1]}',
+      'cx': '${dataPoint['point'][0] - minX.toInt()}',
+      'cy': '${dataPoint['point'][1] - minY.toInt()}',
       'r': '2',
       'fill': color,
     };
