@@ -82,7 +82,7 @@ void displayData(List data) {
     point.onMouseOver.listen((MouseEvent event) {
       DivElement tooltip = querySelector('.tooltip');
       PreElement preElement = tooltip.querySelector('pre');
-      preElement.text = prettyString(dataPoint);
+      prettyString(dataPoint).then((String text) => preElement.text = text);
     });
 
     point.onMouseLeave.listen((MouseEvent event) {
@@ -109,10 +109,14 @@ void displayData(List data) {
   innerSvg.viewport.height = maxY.toInt();
 }
 
-String prettyString(Map map) {
+Future prettyString(Map map) async {
   StringBuffer result = new StringBuffer();
   for (String key in map.keys) {
-    result.writeln('$key : ${map[key]}');
+      result.writeln('$key : ${map[key]}');
   }
-  return result.toString();
+  if (map.containsKey('uri')) {
+    String response = await HttpRequest.getString(map['uri']);
+    result.writeln(response);
+  }
+  return new Future.value(result.toString());
 }
