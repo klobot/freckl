@@ -4,6 +4,9 @@ import 'dart:svg' as svg;
 import 'dart:convert' show JSON;
 
 import 'package:svg_pan_zoom/svg_pan_zoom.dart' as panzoom;
+import 'package:diff_match_patch/diff_match_patch.dart' as diff;
+
+String _currenlyDisplayedText = "";
 
 void main() {
   querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
@@ -107,14 +110,23 @@ void displayData(List data) {
     point.onMouseOver.listen((MouseEvent event) {
       DivElement tooltip = querySelector('.tooltip');
       PreElement preElement = tooltip.querySelector('pre');
-      prettyString(dataPoint).then((String text) => preElement.text = text);
+      prettyString(dataPoint).then((String text) {
+        preElement.text = text;
+
+        getCode(dataPoint).then((code) {
+
+          PreElement diffPre = querySelector('.diff').querySelector('pre');
+          diffPre.text = diff.diff(_currenlyDisplayedText, code).join('\n');
+
+          _currenlyDisplayedText = code;
+        });
+
+
+      });
     });
 
     group.append(point);
   }
-
-
-
 
 // Create a background rect and insert it before the points.
   svg.RectElement rect = new svg.RectElement();
@@ -142,4 +154,10 @@ Future prettyString(Map map) async {
     result.writeln(response);
   }
   return new Future.value(result.toString());
+}
+
+Future<String> getCode(Map map) async {
+  if (map.containsKey('uri')) return await HttpRequest.getString(map['uri']);
+
+  return new Future.value("");
 }

@@ -9,9 +9,11 @@ html, body {
 }
 
 .visualisation-container,
-.tooltip {
+.tooltip,
+.diff {
   margin: 10px auto 10px auto;
-  border: 1px solid #999;
+  border: 1px solid #999;  
+  
 }
 
 #path-selector {
@@ -23,3 +25,8 @@ html, body {
   fill: #FFF;
 }
 
+
+.tooltip,
+.diff {
+  display: inline-block;
+}
