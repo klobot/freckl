@@ -1,8 +1,7 @@
 name: 'freckl'
 version: 0.0.1
-description: An absolute bare-bones web app.
-#author: <your name> <email@example.com>
-#homepage: https://www.example.com
+description: An interactive web visualiser of .freckl files.
+author: Mariana Marasoiu <mariana.marasoiu@gmail.com>
 environment:
   sdk: '>=1.0.0 <2.0.0'
 dependencies:

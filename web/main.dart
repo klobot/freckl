@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:html';
 import 'dart:svg' as svg;
 import 'dart:convert' show JSON;
@@ -38,9 +39,15 @@ void displayData(List data) {
     // {'point': [x, y],
     //  'value': v,
     //  'color': c,
-    //  'other': o,
     //  ...
     // }
+    assert(dataPoint.containsKey('point'));
+    assert(dataPoint['point'] is List);
+    assert(dataPoint['point'].length == 2);
+    assert(dataPoint.containsKey('value'));
+    assert(dataPoint.containsKey('color'));
+
+    // Update maximum values.
     maxX = dataPoint['point'][0] > maxX ? dataPoint['point'][0] : maxX;
     maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
 
@@ -55,7 +62,8 @@ void displayData(List data) {
 
     point.onMouseOver.listen((MouseEvent event) {
       DivElement tooltip = querySelector('.tooltip');
-      tooltip.text = dataPoint.toString();
+      PreElement preElement = tooltip.querySelector('pre');
+      preElement.text = prettyString(dataPoint);
     });
 
     point.onMouseLeave.listen((MouseEvent event) {
@@ -79,4 +87,12 @@ void displayData(List data) {
   // Adjust the viewport on the parent svg element.
   innerSvg.viewport.width = maxX.toInt();
   innerSvg.viewport.height = maxY.toInt();
+}
+
+String prettyString(Map map) {
+  StringBuffer result = new StringBuffer();
+  for (String key in map.keys) {
+    result.writeln('$key : ${map[key]}');
+  }
+  return result.toString();
 }
