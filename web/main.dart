@@ -46,7 +46,19 @@ void displayData(List data) {
     assert(dataPoint['point'].length == 2);
     assert(dataPoint.containsKey('value'));
     assert(dataPoint.containsKey('color'));
-
+    // Color can be an int (the format of the image package for Dart)
+    // or a (hex) string.
+    String color;
+    if (dataPoint['color'] is int) {
+      int c = dataPoint['color'];
+      int r = c & 0xff;
+      int g = (c >> 8) & 0xff;
+      int b = (c >> 16) & 0xff;
+      int a = (c >> 24) & 0xff;
+      color = 'rgba($r, $g, $b, $a)';
+    } else {
+      color = dataPoint['color'];
+    }
     // Update maximum values.
     maxX = dataPoint['point'][0] > maxX ? dataPoint['point'][0] : maxX;
     maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
@@ -57,8 +69,8 @@ void displayData(List data) {
       'cx': '${dataPoint['point'][0]}',
       'cy': '${dataPoint['point'][1]}',
       'r': '2',
+      'fill': color,
     };
-    point.classes.add('point');
 
     point.onMouseOver.listen((MouseEvent event) {
       DivElement tooltip = querySelector('.tooltip');
