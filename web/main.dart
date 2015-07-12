@@ -68,7 +68,8 @@ void displayData(List data) {
 
     point.onMouseLeave.listen((MouseEvent event) {
       DivElement tooltip = querySelector('.tooltip');
-      tooltip.text = '';
+      PreElement preElement = tooltip.querySelector('pre');
+      preElement.text = '';
     });
     group.append(point);
   }
