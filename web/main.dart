@@ -64,6 +64,22 @@ void displayData(List data) {
     maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
   }
 
+  svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour, [num opacityOverride]) {
+    svg.CircleElement point = new svg.CircleElement();
+    point.attributes = {
+      'cx': '${dataPoint['point'][0] - minX.toInt()}',
+      'cy': '${dataPoint['point'][1] - minY.toInt()}',
+      'r': '$radius',
+      'fill': colour,
+    };
+
+    if (opacityOverride != null) {
+      point.attributes['opacity'] = '$opacityOverride';
+    }
+    return point;
+  }
+
+
   for (Map dataPoint in data) {
     // Color can be an int (the format of the image package for Dart)
     // or a (hex) string.
@@ -79,14 +95,14 @@ void displayData(List data) {
       color = dataPoint['color'];
     }
 
+    // Add an area aura
+    var aura = _createDataCircle(dataPoint, 25, color, 0.01);
+    aura.style.pointerEvents = "None";
+    group.append(aura);
+
+
     // Create the circle element
-    svg.CircleElement point = new svg.CircleElement();
-    point.attributes = {
-      'cx': '${dataPoint['point'][0] - minX.toInt()}',
-      'cy': '${dataPoint['point'][1] - minY.toInt()}',
-      'r': '2',
-      'fill': color,
-    };
+    var point = _createDataCircle(dataPoint, 1, color);
 
     point.onMouseOver.listen((MouseEvent event) {
       DivElement tooltip = querySelector('.tooltip');
@@ -94,28 +110,26 @@ void displayData(List data) {
       prettyString(dataPoint).then((String text) => preElement.text = text);
     });
 
-    point.onMouseLeave.listen((MouseEvent event) {
-      DivElement tooltip = querySelector('.tooltip');
-      PreElement preElement = tooltip.querySelector('pre');
-      preElement.text = '';
-    });
     group.append(point);
   }
 
-  // Create a background rect and insert it before the points.
+
+
+
+// Create a background rect and insert it before the points.
   svg.RectElement rect = new svg.RectElement();
   rect.attributes = {
     'x': '0',
     'y': '0',
-    'width': '${maxX.toInt()}',
-    'height': '${maxY.toInt()}',
+    'width': '${(maxX - minX).toInt()}',
+    'height': '${(maxY - minY).toInt()}',
   };
   rect.classes.add('background');
   group.nodes.insert(0, rect);
 
-  // Adjust the viewport on the parent svg element.
-  innerSvg.viewport.width = maxX.toInt();
-  innerSvg.viewport.height = maxY.toInt();
+// Adjust the viewport on the parent svg element.
+  innerSvg.viewport.width = (maxX - minX).toInt();
+  innerSvg.viewport.height = (maxY - minY).toInt();
 }
 
 Future prettyString(Map map) async {
