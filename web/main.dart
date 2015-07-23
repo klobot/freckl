@@ -9,7 +9,52 @@ void main() {
   querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
   querySelector('#path-button').onMouseUp.listen(buttonPressHandler);
 
-  var panZoom = new panzoom.SvgPanZoom.selector('.inner');
+  querySelectorAll('.splitter').forEach((Element element) {
+    bool vertical = element.classes.contains('vertical');
+    bool horizontal = element.classes.contains('horizontal');
+
+    element.onMouseDown.listen((MouseEvent e) {
+      if (e.which != 1) {
+        return;
+      }
+
+      e.preventDefault();
+      Point offset = e.offset;
+
+      StreamSubscription moveSubscription, upSubscription;
+      Function cancel = () {
+        if (moveSubscription != null) {
+          moveSubscription.cancel();
+        }
+        if (upSubscription != null) {
+          upSubscription.cancel();
+        }
+      };
+
+      moveSubscription = document.onMouseMove.listen((e) {
+        List neighbors = element.parent.children;
+        Element target = neighbors[neighbors.indexOf(element) - 1];
+
+        if (e.which != 1) {
+          cancel();
+        } else {
+          Point current = e.client - element.parent.client.topLeft - offset;
+          current -= target.marginEdge.topLeft;
+          if (vertical) {
+            target.style.width = '${current.x}px';
+          } else if (horizontal) {
+            target.style.height = '${current.y}px';
+          }
+        }
+      });
+
+      upSubscription = document.onMouseUp.listen((e) {
+        cancel();
+      });
+    });
+  });
+
+  var panZoom = new panzoom.SvgPanZoom.selector('.inner-svg');
   panZoom
     ..zoomEnabled = true
     ..panEnabled = true
@@ -34,7 +79,7 @@ void _loadData() {
 }
 
 void displayData(List data) {
-  svg.SvgSvgElement innerSvg = querySelector('.inner');
+  svg.SvgSvgElement innerSvg = querySelector('.inner-svg');
   svg.GElement group = innerSvg.querySelector('#viewport');
   group.nodes.clear();
 
@@ -64,7 +109,8 @@ void displayData(List data) {
     maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
   }
 
-  svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour, [num opacityOverride]) {
+  svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour,
+      [num opacityOverride]) {
     svg.CircleElement point = new svg.CircleElement();
     point.attributes = {
       'cx': '${dataPoint['point'][0] - minX.toInt()}',
@@ -78,7 +124,6 @@ void displayData(List data) {
     }
     return point;
   }
-
 
   for (Map dataPoint in data) {
     // Color can be an int (the format of the image package for Dart)
@@ -100,12 +145,11 @@ void displayData(List data) {
     aura.style.pointerEvents = "None";
     group.append(aura);
 
-
     // Create the circle element
     var point = _createDataCircle(dataPoint, 1, color);
 
     point.onMouseOver.listen((MouseEvent event) {
-      DivElement tooltip = querySelector('.tooltip');
+      DivElement tooltip = querySelector('#info-left');
       PreElement preElement = tooltip.querySelector('pre');
       prettyString(dataPoint).then((String text) => preElement.text = text);
     });
@@ -113,10 +157,7 @@ void displayData(List data) {
     group.append(point);
   }
 
-
-
-
-// Create a background rect and insert it before the points.
+  // Create a background rect and insert it before the points.
   svg.RectElement rect = new svg.RectElement();
   rect.attributes = {
     'x': '0',
@@ -127,7 +168,7 @@ void displayData(List data) {
   rect.classes.add('background');
   group.nodes.insert(0, rect);
 
-// Adjust the viewport on the parent svg element.
+  // Adjust the viewport on the parent svg element.
   innerSvg.viewport.width = (maxX - minX).toInt();
   innerSvg.viewport.height = (maxY - minY).toInt();
 }
@@ -135,7 +176,7 @@ void displayData(List data) {
 Future prettyString(Map map) async {
   StringBuffer result = new StringBuffer();
   for (String key in map.keys) {
-      result.writeln('$key : ${map[key]}');
+    result.writeln('$key : ${map[key]}');
   }
   if (map.containsKey('uri')) {
     String response = await HttpRequest.getString(map['uri']);
