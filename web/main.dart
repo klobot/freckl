@@ -1,15 +1,21 @@
 import 'dart:async';
 import 'dart:html';
+import 'dart:math' as math;
 import 'dart:svg' as svg;
 import 'dart:convert' show JSON;
 
 import 'package:svg_pan_zoom/svg_pan_zoom.dart' as panzoom;
 
+panzoom.SvgPanZoom panZoom;
+String visSelector = '.inner';
+int visWidth = 1000;
+int visHeight = 500;
+
 void main() {
   querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
   querySelector('#path-button').onMouseUp.listen(buttonPressHandler);
 
-  var panZoom = new panzoom.SvgPanZoom.selector('.inner');
+  panZoom = new panzoom.SvgPanZoom.selector(visSelector);
   panZoom
     ..zoomEnabled = true
     ..panEnabled = true
@@ -34,7 +40,10 @@ void _loadData() {
 }
 
 void displayData(List data) {
-  svg.SvgSvgElement innerSvg = querySelector('.inner');
+  // Before doing anything else, reset the viewport of the visualisation.
+  resetVisualisation();
+
+  svg.SvgSvgElement innerSvg = querySelector(visSelector);
   svg.GElement group = innerSvg.querySelector('#viewport');
   group.nodes.clear();
 
@@ -64,7 +73,8 @@ void displayData(List data) {
     maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
   }
 
-  svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour, [num opacityOverride]) {
+  svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour,
+      [num opacityOverride]) {
     svg.CircleElement point = new svg.CircleElement();
     point.attributes = {
       'cx': '${dataPoint['point'][0] - minX.toInt()}',
@@ -78,7 +88,6 @@ void displayData(List data) {
     }
     return point;
   }
-
 
   for (Map dataPoint in data) {
     // Color can be an int (the format of the image package for Dart)
@@ -100,7 +109,6 @@ void displayData(List data) {
     aura.style.pointerEvents = "None";
     group.append(aura);
 
-
     // Create the circle element
     var point = _createDataCircle(dataPoint, 1, color);
 
@@ -113,10 +121,7 @@ void displayData(List data) {
     group.append(point);
   }
 
-
-
-
-// Create a background rect and insert it before the points.
+  // Create a background rect and insert it before the points.
   svg.RectElement rect = new svg.RectElement();
   rect.attributes = {
     'x': '0',
@@ -127,15 +132,31 @@ void displayData(List data) {
   rect.classes.add('background');
   group.nodes.insert(0, rect);
 
-// Adjust the viewport on the parent svg element.
-  innerSvg.viewport.width = (maxX - minX).toInt();
-  innerSvg.viewport.height = (maxY - minY).toInt();
+  // Adjust the viewport on the parent svg element.
+  centerAndFitVisualisation((maxX - minX).toInt(), (maxY - minY).toInt());
+}
+
+void centerAndFitVisualisation(int width, int height) {
+  // Center the visualisation
+  num offsetX = (visWidth - width * panZoom.realZoom) * 0.5;
+  num offsetY = (visHeight - height * panZoom.realZoom) * 0.5;
+  panZoom.panTo(offsetX, offsetY);
+
+  // Scale it so it fits in the container
+  num newScale = math.min(visWidth / width, visHeight / height);
+  var centre = new math.Point(visWidth * 0.5, visHeight * 0.5);
+  panZoom.zoomAtPoint(newScale, centre, true);
+}
+
+void resetVisualisation() {
+  panZoom.zoomAtPoint(
+      panZoom.minZoom, new math.Point(visWidth * 0.5, visHeight * 0.5), true);
 }
 
 Future prettyString(Map map) async {
   StringBuffer result = new StringBuffer();
   for (String key in map.keys) {
-      result.writeln('$key : ${map[key]}');
+    result.writeln('$key : ${map[key]}');
   }
   if (map.containsKey('uri')) {
     String response = await HttpRequest.getString(map['uri']);
