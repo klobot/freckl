@@ -19,6 +19,44 @@ html, body {
   width: 1000px;
 }
 
+#data-selector-window {
+  padding: 10px;
+  border: 1px solid #999;
+  position: fixed;
+  width: 1050px;
+  height: 750px;
+  overflow-y: scroll;
+  top: 0;
+  margin: 5% auto;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+}
+
+#selector-items-container {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item-selector {
+  width: 200px;
+  margin: 5px;
+  padding: 0;
+  background: #ffffff;
+  display: inline-block;
+}
+
+.item-selector .text {
+  height: 25px;
+  overflow: scroll;
+  white-space: nowrap;
+}
+
+.item-selector .image {
+  height: 200px;
+}
+
 .background {
   fill: #FFF;
 }

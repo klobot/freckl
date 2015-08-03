@@ -4,6 +4,7 @@ import 'dart:svg' as svg;
 import 'dart:convert' show JSON;
 
 import 'package:svg_pan_zoom/svg_pan_zoom.dart' as panzoom;
+import 'package:infinity_view/infinity_view.dart' as inf;
 
 void main() {
   querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
@@ -26,11 +27,66 @@ void buttonPressHandler(MouseEvent event) {
 
 void _loadData() {
   InputElement input = querySelector('#path-to-json');
-  String pathToJson = input.value;
-  HttpRequest.getString(pathToJson).then((String response) {
-    List data = JSON.decode(response);
-    displayData(data);
+  String pathToServer = input.value;
+  String pathToIndexFile = pathToServer + 'index.json';
+  HttpRequest.getString(pathToIndexFile).then((String response) {
+    List imageList = [];
+    for (String imageUrl in JSON.decode(response)) {
+      imageList.add(pathToServer + imageUrl);
+    }
+    displayImageList(imageList);
   });
+}
+
+void _loadDataFromUrl(String fileURL) {
+  HttpRequest.getString(fileURL).then((String response) {
+    List imageList = JSON.decode(response);
+    displayData(imageList);
+  });
+}
+
+void displayImageList(List imageList) {
+  DivElement selectorWindow = new DivElement();
+  selectorWindow.id = 'data-selector-window';
+  document.body.append(selectorWindow);
+
+  DivElement selectorContainer = new DivElement();
+  selectorContainer.id = 'selector-items-container';
+  selectorWindow.append(selectorContainer);
+
+  inf.InfinityView view;
+
+  Function createItemElement = (String imageUrl) {
+    DivElement wrapper = new DivElement();
+    wrapper.classes.add('item-selector');
+
+    DivElement imgWrapper = new DivElement();
+    imgWrapper.classes.add('image');
+    wrapper.append(imgWrapper);
+
+    ImageElement img = new ImageElement();
+    img.src = imageUrl;
+    img.style..maxWidth = '100%'
+    ..maxHeight = '100%';
+    imgWrapper.append(img);
+
+    DivElement text = new DivElement();
+    text.classes.add('text');
+    text.text = imageUrl.split('/').last.toString(); // Use the name of the file
+    wrapper.append(text);
+
+    wrapper.onClick.listen((MouseEvent event) {
+      selectorWindow.remove();
+      view = null;
+      _loadDataFromUrl(imageUrl.replaceAll('jpg', 'json'));
+    });
+    return wrapper;
+  };
+
+  view = new inf.InfinityView(imageList, createItemElement);
+  view.pageHorizontalItemCount = 5;
+  view.pageVerticalItemCount = 7;
+  view.attachToElement(selectorContainer);
 }
 
 void displayData(List data) {
