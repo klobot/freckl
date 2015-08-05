@@ -1,14 +1,14 @@
-import 'dart:async';
+import 'dart:convert' show JSON;
 import 'dart:html';
 import 'dart:svg' as svg;
-import 'dart:convert' show JSON;
 
 import 'package:svg_pan_zoom/svg_pan_zoom.dart' as panzoom;
 import 'package:infinity_view/infinity_view.dart' as inf;
+import 'package:freckl/utils.dart' as utils;
 
 void main() {
-  querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
-  querySelector('#path-button').onMouseUp.listen(buttonPressHandler);
+  querySelector('#path-to-index-file').onKeyUp.listen(indexFileKeyHandler);
+  querySelector('#path-button').onMouseUp.listen(indexFileButtonHandler);
 
   var panZoom = new panzoom.SvgPanZoom.selector('.inner');
   panZoom
@@ -17,35 +17,35 @@ void main() {
     ..zoomSensitivity = 0.02;
 }
 
-void pathToJsonHander(KeyboardEvent event) {
-  if (event.keyCode == 13) _loadData();
+void indexFileKeyHandler(KeyboardEvent event) {
+  if (event.keyCode == 13) {
+    _loadIndexFileFromUrl(
+        (querySelector('#path-to-index-file') as InputElement).value);
+  }
 }
 
-void buttonPressHandler(MouseEvent event) {
-  _loadData();
+void indexFileButtonHandler(MouseEvent event) {
+  _loadIndexFileFromUrl(
+      (querySelector('#path-to-index-file') as InputElement).value);
 }
 
-void _loadData() {
-  InputElement input = querySelector('#path-to-json');
-  String pathToServer = input.value;
-  String pathToIndexFile = pathToServer + 'index.json';
-  HttpRequest.getString(pathToIndexFile).then((String response) {
-    List imageList = [];
-    for (String imageUrl in JSON.decode(response)) {
-      imageList.add(pathToServer + imageUrl);
-    }
-    displayImageList(imageList);
-  });
-}
-
-void _loadDataFromUrl(String fileURL) {
+void _loadIndexFileFromUrl(String fileURL) {
   HttpRequest.getString(fileURL).then((String response) {
-    List imageList = JSON.decode(response);
-    displayData(imageList);
+    var fileContents = JSON.decode(response);
+    utils.validateIndexFileContents(fileContents);
+    displayImageList(fileContents);
   });
 }
 
-void displayImageList(List imageList) {
+void _loadFrecklFileFromUrl(String fileURL) {
+  HttpRequest.getString(fileURL).then((String response) {
+    var fileContents = JSON.decode(response);
+    utils.validateIndexFileContents(fileContents);
+    displayData(fileContents);
+  });
+}
+
+void displayImageList(List indexList) {
   DivElement selectorWindow = new DivElement();
   selectorWindow.id = 'data-selector-window';
   document.body.append(selectorWindow);
@@ -56,7 +56,7 @@ void displayImageList(List imageList) {
 
   inf.InfinityView view;
 
-  Function createItemElement = (String imageUrl) {
+  Function createItemElement = (Map dataEntryMap) {
     DivElement wrapper = new DivElement();
     wrapper.classes.add('item-selector');
 
@@ -65,25 +65,26 @@ void displayImageList(List imageList) {
     wrapper.append(imgWrapper);
 
     ImageElement img = new ImageElement();
-    img.src = imageUrl;
-    img.style..maxWidth = '100%'
-    ..maxHeight = '100%';
+    img.src = dataEntryMap['img'];
+    img.style
+      ..maxWidth = '100%'
+      ..maxHeight = '100%';
     imgWrapper.append(img);
 
     DivElement text = new DivElement();
     text.classes.add('text');
-    text.text = imageUrl.split('/').last.toString(); // Use the name of the file
+    text.text = dataEntryMap['id'];
     wrapper.append(text);
 
     wrapper.onClick.listen((MouseEvent event) {
       selectorWindow.remove();
       view = null;
-      _loadDataFromUrl(imageUrl.replaceAll('jpg', 'json'));
+      _loadFrecklFileFromUrl(dataEntryMap['freckl']);
     });
     return wrapper;
   };
 
-  view = new inf.InfinityView(imageList, createItemElement);
+  view = new inf.InfinityView(indexList, createItemElement);
   view.pageHorizontalItemCount = 5;
   view.pageVerticalItemCount = 7;
   view.attachToElement(selectorContainer);
@@ -101,26 +102,14 @@ void displayData(List data) {
   maxX = maxY = double.NEGATIVE_INFINITY;
 
   for (Map dataPoint in data) {
-    // [dataPoint] looks like:
-    // {'point': [x, y],
-    //  'value': v,
-    //  'color': c,
-    //  'uri': path,
-    //  ...
-    // }
-    assert(dataPoint.containsKey('point'));
-    assert(dataPoint['point'] is List);
-    assert(dataPoint['point'].length == 2);
-    assert(dataPoint.containsKey('value'));
-    assert(dataPoint.containsKey('color'));
-
     minX = dataPoint['point'][0] < minX ? dataPoint['point'][0] : minX;
     minY = dataPoint['point'][1] < minY ? dataPoint['point'][1] : minY;
     maxX = dataPoint['point'][0] > maxX ? dataPoint['point'][0] : maxX;
     maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
   }
 
-  svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour, [num opacityOverride]) {
+  svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour,
+      [num opacityOverride]) {
     svg.CircleElement point = new svg.CircleElement();
     point.attributes = {
       'cx': '${dataPoint['point'][0] - minX.toInt()}',
@@ -135,27 +124,13 @@ void displayData(List data) {
     return point;
   }
 
-
   for (Map dataPoint in data) {
-    // Color can be an int (the format of the image package for Dart)
-    // or a (hex) string.
-    String color;
-    if (dataPoint['color'] is int) {
-      int c = dataPoint['color'];
-      int r = c & 0xff;
-      int g = (c >> 8) & 0xff;
-      int b = (c >> 16) & 0xff;
-      int a = (c >> 24) & 0xff;
-      color = 'rgba($r, $g, $b, $a)';
-    } else {
-      color = dataPoint['color'];
-    }
+    String color = utils.readColor(dataPoint['color']);
 
     // Add an area aura
     var aura = _createDataCircle(dataPoint, 25, color, 0.01);
     aura.style.pointerEvents = "None";
     group.append(aura);
-
 
     // Create the circle element
     var point = _createDataCircle(dataPoint, 1, color);
@@ -163,16 +138,15 @@ void displayData(List data) {
     point.onMouseOver.listen((MouseEvent event) {
       DivElement tooltip = querySelector('.tooltip');
       PreElement preElement = tooltip.querySelector('pre');
-      prettyString(dataPoint).then((String text) => preElement.text = text);
+      utils
+          .stringifyFreckl(dataPoint)
+          .then((String text) => preElement.text = text);
     });
 
     group.append(point);
   }
 
-
-
-
-// Create a background rect and insert it before the points.
+  // Create a background rect and insert it before the points.
   svg.RectElement rect = new svg.RectElement();
   rect.attributes = {
     'x': '0',
@@ -183,19 +157,7 @@ void displayData(List data) {
   rect.classes.add('background');
   group.nodes.insert(0, rect);
 
-// Adjust the viewport on the parent svg element.
+  // Adjust the viewport on the parent svg element.
   innerSvg.viewport.width = (maxX - minX).toInt();
   innerSvg.viewport.height = (maxY - minY).toInt();
-}
-
-Future prettyString(Map map) async {
-  StringBuffer result = new StringBuffer();
-  for (String key in map.keys) {
-      result.writeln('$key : ${map[key]}');
-  }
-  if (map.containsKey('uri')) {
-    String response = await HttpRequest.getString(map['uri']);
-    result.writeln(response);
-  }
-  return new Future.value(result.toString());
 }
