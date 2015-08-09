@@ -1,9 +1,15 @@
 import 'dart:async';
 import 'dart:html';
+import 'dart:math' as math;
 import 'dart:svg' as svg;
 import 'dart:convert' show JSON;
 
 import 'package:svg_pan_zoom/svg_pan_zoom.dart' as panzoom;
+
+panzoom.SvgPanZoom panZoom;
+String visSelector = '.inner';
+int visWidth = 1000;
+int visHeight = 500;
 
 void main() {
   querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
@@ -54,7 +60,7 @@ void main() {
     });
   });
 
-  var panZoom = new panzoom.SvgPanZoom.selector('.inner-svg');
+  panZoom = new panzoom.SvgPanZoom.selector('.inner-svg');
   panZoom
     ..zoomEnabled = true
     ..panEnabled = true
@@ -79,6 +85,8 @@ void _loadData() {
 }
 
 void displayData(List data) {
+  // Before doing anything else, reset the viewport of the visualisation.
+  resetVisualisation();
   svg.SvgSvgElement innerSvg = querySelector('.inner-svg');
   svg.GElement group = innerSvg.querySelector('#viewport');
   group.nodes.clear();
@@ -169,8 +177,24 @@ void displayData(List data) {
   group.nodes.insert(0, rect);
 
   // Adjust the viewport on the parent svg element.
-  innerSvg.viewport.width = (maxX - minX).toInt();
-  innerSvg.viewport.height = (maxY - minY).toInt();
+  centerAndFitVisualisation((maxX - minX).toInt(), (maxY - minY).toInt());
+}
+
+void centerAndFitVisualisation(int width, int height) {
+  // Center the visualisation
+  num offsetX = (visWidth - width * panZoom.realZoom) * 0.5;
+  num offsetY = (visHeight - height * panZoom.realZoom) * 0.5;
+  panZoom.panTo(offsetX, offsetY);
+
+  // Scale it so it fits in the container
+  num newScale = math.min(visWidth / width, visHeight / height);
+  var centre = new math.Point(visWidth * 0.5, visHeight * 0.5);
+  panZoom.zoomAtPoint(newScale, centre, true);
+}
+
+void resetVisualisation() {
+  panZoom.zoomAtPoint(
+      panZoom.minZoom, new math.Point(visWidth * 0.5, visHeight * 0.5), true);
 }
 
 Future prettyString(Map map) async {
