@@ -17,50 +17,7 @@ void main() {
   querySelector('#path-to-index-file').onKeyUp.listen(indexFileKeyHandler);
   querySelector('#path-button').onMouseUp.listen(indexFileButtonHandler);
 
-  querySelectorAll('.splitter').forEach((Element element) {
-    bool vertical = element.classes.contains('vertical');
-    bool horizontal = element.classes.contains('horizontal');
-
-    element.onMouseDown.listen((MouseEvent e) {
-      if (e.which != 1) {
-        return;
-      }
-
-      e.preventDefault();
-      Point offset = e.offset;
-
-      StreamSubscription moveSubscription, upSubscription;
-      Function cancel = () {
-        if (moveSubscription != null) {
-          moveSubscription.cancel();
-        }
-        if (upSubscription != null) {
-          upSubscription.cancel();
-        }
-      };
-
-      moveSubscription = document.onMouseMove.listen((e) {
-        List neighbors = element.parent.children;
-        Element target = neighbors[neighbors.indexOf(element) - 1];
-
-        if (e.which != 1) {
-          cancel();
-        } else {
-          Point current = e.client - element.parent.client.topLeft - offset;
-          current -= target.marginEdge.topLeft;
-          if (vertical) {
-            target.style.width = '${current.x}px';
-          } else if (horizontal) {
-            target.style.height = '${current.y}px';
-          }
-        }
-      });
-
-      upSubscription = document.onMouseUp.listen((e) {
-        cancel();
-      });
-    });
-  });
+  querySelectorAll('.splitter').forEach(setupSplitter);
 
   panZoom = new panzoom.SvgPanZoom.selector('.inner-svg');
   panZoom
@@ -128,10 +85,25 @@ void displayImageList(List indexList) {
     text.text = dataEntryMap['id'];
     wrapper.append(text);
 
-    wrapper.onClick.listen((MouseEvent event) {
+    StreamSubscription windowClick;
+    windowClick = window.onClick.listen((MouseEvent event) {
       selectorWindow.remove();
       view = null;
+      windowClick.cancel();
+    });
+
+    wrapper.onClick.listen((MouseEvent event) {
+      event.preventDefault();
+      event.stopPropagation();
+      selectorWindow.remove();
+      view = null;
+      windowClick.cancel();
       _loadFrecklFileFromUrl(dataEntryMap['freckl']);
+    });
+
+    window.onClick.listen((MouseEvent event) {
+      selectorWindow.remove();
+      view = null;
     });
     return wrapper;
   };
@@ -242,4 +214,49 @@ Future prettyString(Map map) async {
     result.writeln(response);
   }
   return new Future.value(result.toString());
+}
+
+void setupSplitter(Element element) {
+  bool vertical = element.classes.contains('vertical');
+  bool horizontal = element.classes.contains('horizontal');
+
+  element.onMouseDown.listen((MouseEvent e) {
+    if (e.which != 1) {
+      return;
+    }
+
+    e.preventDefault();
+    Point offset = e.offset;
+
+    StreamSubscription moveSubscription, upSubscription;
+    Function cancel = () {
+      if (moveSubscription != null) {
+        moveSubscription.cancel();
+      }
+      if (upSubscription != null) {
+        upSubscription.cancel();
+      }
+    };
+
+    moveSubscription = document.onMouseMove.listen((e) {
+      List neighbors = element.parent.children;
+      Element target = neighbors[neighbors.indexOf(element) - 1];
+
+      if (e.which != 1) {
+        cancel();
+      } else {
+        Point current = e.client - element.parent.client.topLeft - offset;
+        current -= target.marginEdge.topLeft;
+        if (vertical) {
+          target.style.width = '${current.x}px';
+        } else if (horizontal) {
+          target.style.height = '${current.y}px';
+        }
+      }
+    });
+
+    upSubscription = document.onMouseUp.listen((e) {
+      cancel();
+    });
+  });
 }
