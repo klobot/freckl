@@ -15,7 +15,52 @@ void main() {
   querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
   querySelector('#path-button').onMouseUp.listen(buttonPressHandler);
 
-  panZoom = new panzoom.SvgPanZoom.selector(visSelector);
+  querySelectorAll('.splitter').forEach((Element element) {
+    bool vertical = element.classes.contains('vertical');
+    bool horizontal = element.classes.contains('horizontal');
+
+    element.onMouseDown.listen((MouseEvent e) {
+      if (e.which != 1) {
+        return;
+      }
+
+      e.preventDefault();
+      Point offset = e.offset;
+
+      StreamSubscription moveSubscription, upSubscription;
+      Function cancel = () {
+        if (moveSubscription != null) {
+          moveSubscription.cancel();
+        }
+        if (upSubscription != null) {
+          upSubscription.cancel();
+        }
+      };
+
+      moveSubscription = document.onMouseMove.listen((e) {
+        List neighbors = element.parent.children;
+        Element target = neighbors[neighbors.indexOf(element) - 1];
+
+        if (e.which != 1) {
+          cancel();
+        } else {
+          Point current = e.client - element.parent.client.topLeft - offset;
+          current -= target.marginEdge.topLeft;
+          if (vertical) {
+            target.style.width = '${current.x}px';
+          } else if (horizontal) {
+            target.style.height = '${current.y}px';
+          }
+        }
+      });
+
+      upSubscription = document.onMouseUp.listen((e) {
+        cancel();
+      });
+    });
+  });
+
+  panZoom = new panzoom.SvgPanZoom.selector('.inner-svg');
   panZoom
     ..zoomEnabled = true
     ..panEnabled = true
@@ -42,8 +87,7 @@ void _loadData() {
 void displayData(List data) {
   // Before doing anything else, reset the viewport of the visualisation.
   resetVisualisation();
-
-  svg.SvgSvgElement innerSvg = querySelector(visSelector);
+  svg.SvgSvgElement innerSvg = querySelector('.inner-svg');
   svg.GElement group = innerSvg.querySelector('#viewport');
   group.nodes.clear();
 
@@ -113,7 +157,7 @@ void displayData(List data) {
     var point = _createDataCircle(dataPoint, 1, color);
 
     point.onMouseOver.listen((MouseEvent event) {
-      DivElement tooltip = querySelector('.tooltip');
+      DivElement tooltip = querySelector('#info-left');
       PreElement preElement = tooltip.querySelector('pre');
       prettyString(dataPoint).then((String text) => preElement.text = text);
     });

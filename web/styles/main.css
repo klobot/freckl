@@ -8,18 +8,92 @@ html, body {
   font-family: 'Roboto', sans-serif;
 }
 
-.visualisation-container,
-.tooltip {
-  margin: 10px auto 10px auto;
-  border: 1px solid #999;
-}
-
-#path-selector {
+#path-selector,
+#visualisation-container,
+#info-container {
   margin: 10px auto 10px auto;
   width: 1000px;
 }
 
+#visualisation-container {
+  border: 1px solid #999999;
+}
+
+#info-container {
+  display: flex;
+  flex-direction: column;
+}
+
+#info-container .row {
+  display: flex;
+  flex-direction: row;
+}
+
+#info-container .column {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #999999;
+  box-shadow: inset 0 0 7px #999999;
+}
+
+#info-container .column.right {
+  flex: 2;
+}
+
+#info-left {
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+}
+
+#info-left pre {
+  margin: 1em;
+}
+
+.splitter {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.splitter.vertical {
+  width: 20px;
+  cursor: col-resize;
+}
+
+.splitter.horizontal {
+  height: 20px;
+  cursor: row-resize;
+}
+
+.splitter .inner {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+}
+
+.splitter.vertical .inner {
+  width: 2px;
+  height: 20px;
+  border-left: 1px solid #999999;
+  border-right: 1px solid #999999;
+}
+
+.splitter.horizontal .inner {
+  width: 20px;
+  height: 2px;
+  border-top: 1px solid #999999;
+  border-bottom: 1px solid #999999;
+}
+
+.inner {
+  position: absolute;
+  pointer-events: none;
+}
+
 .background {
-  fill: #FFF;
+  fill: #FFFFFF;
 }
 
