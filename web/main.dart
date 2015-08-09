@@ -1,16 +1,68 @@
+import 'dart:async';
 import 'dart:convert' show JSON;
 import 'dart:html';
+import 'dart:math' as math;
 import 'dart:svg' as svg;
 
 import 'package:svg_pan_zoom/svg_pan_zoom.dart' as panzoom;
 import 'package:infinity_view/infinity_view.dart' as inf;
 import 'package:freckl/utils.dart' as utils;
 
+panzoom.SvgPanZoom panZoom;
+String visSelector = '.inner';
+int visWidth = 1000;
+int visHeight = 500;
+
 void main() {
   querySelector('#path-to-index-file').onKeyUp.listen(indexFileKeyHandler);
   querySelector('#path-button').onMouseUp.listen(indexFileButtonHandler);
 
-  var panZoom = new panzoom.SvgPanZoom.selector('.inner');
+  querySelectorAll('.splitter').forEach((Element element) {
+    bool vertical = element.classes.contains('vertical');
+    bool horizontal = element.classes.contains('horizontal');
+
+    element.onMouseDown.listen((MouseEvent e) {
+      if (e.which != 1) {
+        return;
+      }
+
+      e.preventDefault();
+      Point offset = e.offset;
+
+      StreamSubscription moveSubscription, upSubscription;
+      Function cancel = () {
+        if (moveSubscription != null) {
+          moveSubscription.cancel();
+        }
+        if (upSubscription != null) {
+          upSubscription.cancel();
+        }
+      };
+
+      moveSubscription = document.onMouseMove.listen((e) {
+        List neighbors = element.parent.children;
+        Element target = neighbors[neighbors.indexOf(element) - 1];
+
+        if (e.which != 1) {
+          cancel();
+        } else {
+          Point current = e.client - element.parent.client.topLeft - offset;
+          current -= target.marginEdge.topLeft;
+          if (vertical) {
+            target.style.width = '${current.x}px';
+          } else if (horizontal) {
+            target.style.height = '${current.y}px';
+          }
+        }
+      });
+
+      upSubscription = document.onMouseUp.listen((e) {
+        cancel();
+      });
+    });
+  });
+
+  panZoom = new panzoom.SvgPanZoom.selector('.inner-svg');
   panZoom
     ..zoomEnabled = true
     ..panEnabled = true
@@ -91,7 +143,9 @@ void displayImageList(List indexList) {
 }
 
 void displayData(List data) {
-  svg.SvgSvgElement innerSvg = querySelector('.inner');
+  // Before doing anything else, reset the viewport of the visualisation.
+  resetVisualisation();
+  svg.SvgSvgElement innerSvg = querySelector('.inner-svg');
   svg.GElement group = innerSvg.querySelector('#viewport');
   group.nodes.clear();
 
@@ -136,7 +190,7 @@ void displayData(List data) {
     var point = _createDataCircle(dataPoint, 1, color);
 
     point.onMouseOver.listen((MouseEvent event) {
-      DivElement tooltip = querySelector('.tooltip');
+      DivElement tooltip = querySelector('#info-left');
       PreElement preElement = tooltip.querySelector('pre');
       utils
           .stringifyFreckl(dataPoint)
@@ -158,6 +212,34 @@ void displayData(List data) {
   group.nodes.insert(0, rect);
 
   // Adjust the viewport on the parent svg element.
-  innerSvg.viewport.width = (maxX - minX).toInt();
-  innerSvg.viewport.height = (maxY - minY).toInt();
+  centerAndFitVisualisation((maxX - minX).toInt(), (maxY - minY).toInt());
+}
+
+void centerAndFitVisualisation(int width, int height) {
+  // Center the visualisation
+  num offsetX = (visWidth - width * panZoom.realZoom) * 0.5;
+  num offsetY = (visHeight - height * panZoom.realZoom) * 0.5;
+  panZoom.panTo(offsetX, offsetY);
+
+  // Scale it so it fits in the container
+  num newScale = math.min(visWidth / width, visHeight / height);
+  var centre = new math.Point(visWidth * 0.5, visHeight * 0.5);
+  panZoom.zoomAtPoint(newScale, centre, true);
+}
+
+void resetVisualisation() {
+  panZoom.zoomAtPoint(
+      panZoom.minZoom, new math.Point(visWidth * 0.5, visHeight * 0.5), true);
+}
+
+Future prettyString(Map map) async {
+  StringBuffer result = new StringBuffer();
+  for (String key in map.keys) {
+    result.writeln('$key : ${map[key]}');
+  }
+  if (map.containsKey('uri')) {
+    String response = await HttpRequest.getString(map['uri']);
+    result.writeln(response);
+  }
+  return new Future.value(result.toString());
 }
