@@ -148,7 +148,10 @@ void displayData(List data) {
       var separatorWidth = 3;
       var spaceAroundRect = 100;
       var separatorHeight = maxY - minY;
-      var separatorXOffset = previousDataPoint['point'][0] + spaceAroundRect - minX.toInt() - compressedWhitespace;
+      var separatorXOffset = previousDataPoint['point'][0] +
+          spaceAroundRect -
+          minX.toInt() -
+          compressedWhitespace;
 
       var separator = new svg.GElement();
       separator
@@ -169,7 +172,10 @@ void displayData(List data) {
         ..attributes['stroke'] = '#666666'
         ..attributes['stroke-width'] = '${separatorWidth}');
 
-      compressedWhitespace = compressedWhitespace + distance - separatorWidth - 2 * spaceAroundRect;
+      compressedWhitespace = compressedWhitespace +
+          distance -
+          separatorWidth -
+          2 * spaceAroundRect;
     }
 
     // Color can be an int (the format of the image package for Dart)
@@ -215,7 +221,8 @@ void displayData(List data) {
   group.nodes.insert(0, rect);
 
   // Adjust the viewport on the parent svg element.
-  centerAndFitVisualisation((maxX - minX - compressedWhitespace).toInt(), (maxY - minY).toInt());
+  centerAndFitVisualisation(
+      (maxX - minX - compressedWhitespace).toInt(), (maxY - minY).toInt());
 }
 
 void centerAndFitVisualisation(int width, int height) {
