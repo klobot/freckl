@@ -65,6 +65,8 @@ void main() {
   panZoom
     ..zoomEnabled = true
     ..panEnabled = true
+    ..minZoom = 0.02
+    ..maxZoom = 100
     ..zoomSensitivity = 0.02;
 }
 
