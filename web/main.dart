@@ -10,6 +10,7 @@ panzoom.SvgPanZoom panZoom;
 String visSelector = '.inner';
 int visWidth = 1000;
 int visHeight = 500;
+int maxAllowedDistance = 500;
 
 void main() {
   querySelector('#path-to-json').onKeyUp.listen(pathToJsonHander);
@@ -117,11 +118,15 @@ void displayData(List data) {
     maxY = dataPoint['point'][1] > maxY ? dataPoint['point'][1] : maxY;
   }
 
+  // Sort data ascending, so that we can compress the horizontal whitespace.
+  data.sort((p1, p2) => p1['point'][0] - p2['point'][0]);
+  num compressedWhitespace = 0;
+
   svg.CircleElement _createDataCircle(Map dataPoint, num radius, String colour,
       [num opacityOverride]) {
     svg.CircleElement point = new svg.CircleElement();
     point.attributes = {
-      'cx': '${dataPoint['point'][0] - minX.toInt()}',
+      'cx': '${dataPoint['point'][0] - minX.toInt() - compressedWhitespace}',
       'cy': '${dataPoint['point'][1] - minY.toInt()}',
       'r': '$radius',
       'fill': colour,
@@ -134,6 +139,37 @@ void displayData(List data) {
   }
 
   for (Map dataPoint in data) {
+    // The distance between this point and the previous one
+    Map previousDataPoint = data[math.max(0, data.indexOf(dataPoint) - 1)];
+    num distance = dataPoint['point'][0] - previousDataPoint['point'][0];
+    if (distance > maxAllowedDistance) {
+      var separatorWidth = 3;
+      var spaceAroundRect = 100;
+      var separatorHeight = maxY - minY;
+      var separatorXOffset = previousDataPoint['point'][0] + spaceAroundRect - minX.toInt() - compressedWhitespace;
+
+      var separator = new svg.GElement();
+      separator
+        ..attributes['width'] = '$separatorWidth'
+        ..attributes['height'] = '${separatorHeight}'
+        ..attributes['x'] = '${separatorXOffset}'
+        ..attributes['y'] = '0';
+      separator.style
+        ..setProperty('fill', '#666666')
+        ..setProperty('stroke', 'none');
+      group.append(separator);
+
+      separator.append(new svg.LineElement()
+        ..attributes['x1'] = '${separatorXOffset}'
+        ..attributes['y1'] = '${separatorHeight / 4}'
+        ..attributes['x2'] = '${separatorXOffset}'
+        ..attributes['y2'] = '${separatorHeight * 3/ 4}'
+        ..attributes['stroke'] = '#666666'
+        ..attributes['stroke-width'] = '${separatorWidth}');
+
+      compressedWhitespace = compressedWhitespace + distance - separatorWidth - 2 * spaceAroundRect;
+    }
+
     // Color can be an int (the format of the image package for Dart)
     // or a (hex) string.
     String color;
@@ -168,16 +204,16 @@ void displayData(List data) {
   // Create a background rect and insert it before the points.
   svg.RectElement rect = new svg.RectElement();
   rect.attributes = {
-    'x': '0',
-    'y': '0',
-    'width': '${(maxX - minX).toInt()}',
-    'height': '${(maxY - minY).toInt()}',
+    'x': '-25',
+    'y': '-25',
+    'width': '${(maxX - minX - compressedWhitespace).toInt() + 50}',
+    'height': '${(maxY - minY).toInt() + 50}',
   };
   rect.classes.add('background');
   group.nodes.insert(0, rect);
 
   // Adjust the viewport on the parent svg element.
-  centerAndFitVisualisation((maxX - minX).toInt(), (maxY - minY).toInt());
+  centerAndFitVisualisation((maxX - minX - compressedWhitespace).toInt(), (maxY - minY).toInt());
 }
 
 void centerAndFitVisualisation(int width, int height) {
@@ -194,7 +230,7 @@ void centerAndFitVisualisation(int width, int height) {
 
 void resetVisualisation() {
   panZoom.zoomAtPoint(
-      panZoom.minZoom, new math.Point(visWidth * 0.5, visHeight * 0.5), true);
+      panZoom.minZoom, new math.Point(visWidth * 0.5, visHeight * 0.5));
 }
 
 Future prettyString(Map map) async {

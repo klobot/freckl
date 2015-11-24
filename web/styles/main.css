@@ -97,3 +97,6 @@ html, body {
   fill: #FFFFFF;
 }
 
+.outer-svg {
+  background: #eeeeee;
+}

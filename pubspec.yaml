@@ -8,4 +8,5 @@ dependencies:
   browser: '>=0.10.0 <0.11.0'
   svg_pan_zoom:
     git:
-      url: git://github.com/marianamarasoiu/svg_pan_zoom.git
+      url: git://github.com/rwl/svg_pan_zoom.git
+      ref: 3f791346a2bac3b640b3a6473b27b64b73091a65
